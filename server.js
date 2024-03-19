@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Fruits = require('./model/fruits');
 const Distributors = require('./model/distributor');
+const Upload = require('./config/common/upload')
+
 
 const app = express();
 const port = 3000
@@ -227,5 +229,52 @@ app.put('/update-fruit/:id', async (req, res) => {
     } catch (error) {
         console.error('Lỗi khi cập nhật sản phẩm:', error);
         res.status(500).send('Lỗi máy chủ nội bộ');
+    }
+});
+
+app.post('/upload-image', Upload.array('image', 5), async (req, res) => {
+    await mongoose.connect(uri);
+
+    try {
+        const data = req.body;
+        const files = req.files;
+        console.log(JSON.stringify(data));
+
+       
+
+        const urlImages = files.map(file => `${req.protocol}://${req.get("host")}/uploads/${file.filename}`);
+
+        const newFruits = new Fruits({
+            name: data.name,
+            quantity: data.quantity,
+            price: data.price,
+            status: data.status,
+            image: urlImages,
+            description: data.description,
+            id_distributor: data.id_distributor
+        });
+
+        const result = await newFruits.save();
+
+        if (result) {
+            res.json({
+                "status": "200",
+                "messenger": "Thêm thành công",
+                "data": result,
+            });
+        } else {
+            res.json({
+                "status": "400",
+                "messenger": "Lỗi, thêm không thành công",
+                "data": [],
+            });
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            "status": "500",
+            "messenger": "Lỗi máy chủ nội bộ",
+            "data": [],
+        });
     }
 });
